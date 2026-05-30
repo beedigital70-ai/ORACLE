@@ -1,0 +1,30 @@
+name: AI Sports Ingestion Engine
+
+on:
+  schedule:
+    # Run at 06:00 AM New York time every day (10:00 UTC)
+    - cron: '0 10 * * *'
+  # Allow manual triggers from the GitHub Actions UI
+  workflow_dispatch:
+
+jobs:
+  run-ingestion:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Dependencies
+        run: cd backend && npm install
+
+      - name: Run AI Ingestion Script
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          SPORTS_API_KEY: ${{ secrets.SPORTS_API_KEY }}
+        run: cd backend && node scripts/ingest.js
