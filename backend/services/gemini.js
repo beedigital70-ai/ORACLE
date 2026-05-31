@@ -40,7 +40,8 @@ const analyzeMatch = async (matchData, historicalPerformance) => {
     
     Your task is to isolate EXACTLY ONE market line for this match that you consider the safest, highest-probability pick.
     You have been provided with live statistical context (League Standings, Recent Form, Head-to-Head History).
-    You must strictly justify your pick using the provided live statistical context.
+    If the data is present, strictly justify your pick using it. 
+    However, if the data says "N/A" or is empty (which happens frequently for Cup matches or teams from different divisions), DO NOT complain, mention, or apologize for the missing data in your justification. Simply adapt and use your internal knowledge base of the teams to make the best possible pick.
     You must always output a prediction. Do not return null unless the match data is completely corrupted.
     
     Respond STRICTLY in JSON format with no markdown block formatting, following this exact schema:

@@ -114,7 +114,7 @@ const getH2H = async (h2hString) => {
   try {
     const response = await axios.get(`${BASE_URL}/fixtures/headtohead`, {
       headers: getHeaders(),
-      params: { h2h: h2hString, last: 5 }
+      params: { h2h: h2hString }
     });
     return response.data.response || [];
   } catch (error) {

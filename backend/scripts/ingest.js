@@ -32,10 +32,6 @@ const delay = ms => new Promise(res => setTimeout(res, ms));
       const season = match.league.season;
 
       // Rate limit protection for extra API calls
-      await delay(1500); 
-      const homeStandings = await getTeamStandings(leagueId, season, homeTeamId);
-      await delay(1500);
-      const awayStandings = await getTeamStandings(leagueId, season, awayTeamId);
       await delay(1500);
       const h2h = await getH2H(`${homeTeamId}-${awayTeamId}`);
 
@@ -44,9 +40,7 @@ const delay = ms => new Promise(res => setTimeout(res, ms));
         teams: `${match.teams.home.name} vs ${match.teams.away.name}`,
         league: match.league.name,
         date: today,
-        home_team_stats: homeStandings ? { rank: homeStandings.rank, form: homeStandings.form, points: homeStandings.points, goals_diff: homeStandings.goalsDiff } : "N/A",
-        away_team_stats: awayStandings ? { rank: awayStandings.rank, form: awayStandings.form, points: awayStandings.points, goals_diff: awayStandings.goalsDiff } : "N/A",
-        h2h_last_3: h2h.slice(0, 3).map(h => `${h.teams.home.name} ${h.goals.home}-${h.goals.away} ${h.teams.away.name}`)
+        h2h_last_5: h2h ? h2h.slice(0, 5).map(h => `${h.teams.home.name} ${h.goals.home}-${h.goals.away} ${h.teams.away.name}`) : []
       };
 
       await delay(4500); // Rate Limit for Gemini
