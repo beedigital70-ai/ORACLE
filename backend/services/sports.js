@@ -24,6 +24,7 @@ const getHeaders = () => {
 };
 
 const TARGET_LEAGUES = [
+  // Major European Leagues (Winter)
   39, // Premier League
   140, // La Liga
   135, // Serie A
@@ -31,7 +32,21 @@ const TARGET_LEAGUES = [
   61, // Ligue 1
   2, // UEFA Champions League
   3, // UEFA Europa League
-  253, // MLS
+  
+  // Summer / Active Leagues
+  253, // MLS (USA)
+  71,  // Serie A (Brazil)
+  128, // Liga Profesional (Argentina)
+  98,  // J1 League (Japan)
+  69,  // Eliteserien (Norway)
+  113, // Allsvenskan (Sweden)
+  292, // K League 1 (South Korea)
+  
+  // International Tournaments
+  4,   // Euro Championship
+  9,   // Copa America
+  15,  // FIFA World Cup
+  21   // International Friendlies
 ];
 
 const getTodayMatches = async () => {
