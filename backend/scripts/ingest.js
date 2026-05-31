@@ -2,7 +2,7 @@ const dotenv = require('dotenv');
 dotenv.config({ path: __dirname + '/../.env' });
 
 const pool = require('../db/database');
-const { getTodayMatches } = require('../services/sports');
+const { getTodayMatches, getTeamStandings, getH2H } = require('../services/sports');
 const { analyzeMatch } = require('../services/gemini');
 
 const delay = ms => new Promise(res => setTimeout(res, ms));
@@ -24,14 +24,32 @@ const delay = ms => new Promise(res => setTimeout(res, ms));
     let todayPredictions = [];
 
     for (const match of matches) {
+      console.log(`Fetching deep stats for: ${match.teams.home.name} vs ${match.teams.away.name}`);
+      
+      const homeTeamId = match.teams.home.id;
+      const awayTeamId = match.teams.away.id;
+      const leagueId = match.league.id;
+      const season = match.league.season;
+
+      // Rate limit protection for extra API calls
+      await delay(1500); 
+      const homeStandings = await getTeamStandings(leagueId, season, homeTeamId);
+      await delay(1500);
+      const awayStandings = await getTeamStandings(leagueId, season, awayTeamId);
+      await delay(1500);
+      const h2h = await getH2H(`${homeTeamId}-${awayTeamId}`);
+
       const matchData = {
         id: match.fixture.id.toString(),
         teams: `${match.teams.home.name} vs ${match.teams.away.name}`,
         league: match.league.name,
-        date: today
+        date: today,
+        home_team_stats: homeStandings ? { rank: homeStandings.rank, form: homeStandings.form, points: homeStandings.points, goals_diff: homeStandings.goalsDiff } : "N/A",
+        away_team_stats: awayStandings ? { rank: awayStandings.rank, form: awayStandings.form, points: awayStandings.points, goals_diff: awayStandings.goalsDiff } : "N/A",
+        h2h_last_3: h2h.slice(0, 3).map(h => `${h.teams.home.name} ${h.goals.home}-${h.goals.away} ${h.teams.away.name}`)
       };
 
-      await delay(4500); // Rate Limit
+      await delay(4500); // Rate Limit for Gemini
       const prediction = await analyzeMatch(matchData, history);
       
       if (prediction && prediction.market_line) {

@@ -31,15 +31,17 @@ const analyzeMatch = async (matchData, historicalPerformance) => {
 
   const prompt = `
     You are an elite sports betting analyst algorithm.
-    Analyze the following upcoming soccer match data:
+    Analyze the following upcoming soccer match data and historical performance array.
     Match Data: ${JSON.stringify(matchData)}
+    Historical System Performance: ${JSON.stringify(historicalPerformance)}
     
-    Using your vast internal knowledge base of global football, team strengths, tactical playstyles, and historical matchups, you must evaluate all available markets from this strict checklist:
+    You must evaluate all available markets from this strict checklist:
     ${MASTER_MARKET_LIST.join(', ')}
     
-    Your task is to predict EXACTLY ONE market line for this match that you consider a high-probability "Sure Pick".
-    Even though real-time statistics are not provided in this prompt, rely on your deep understanding of these specific teams and leagues to make your best confident prediction.
-    If it is an entirely unknown amateur league, return a JSON object with market_line as null.
+    Your task is to isolate EXACTLY ONE market line for this match that has a calculated probability threshold >= 85%.
+    You have been provided with live statistical context (League Standings, Recent Form, Head-to-Head History).
+    You must strictly justify your 85%+ probability pick using the provided live statistical context.
+    If none of the markets meet this extreme 85% threshold based on the data, you MUST return a JSON object with market_line as null.
     
     Respond STRICTLY in JSON format with no markdown block formatting, following this exact schema:
     {

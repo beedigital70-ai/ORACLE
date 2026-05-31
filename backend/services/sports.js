@@ -23,6 +23,17 @@ const getHeaders = () => {
   }
 };
 
+const TARGET_LEAGUES = [
+  39, // Premier League
+  140, // La Liga
+  135, // Serie A
+  78, // Bundesliga
+  61, // Ligue 1
+  2, // UEFA Champions League
+  3, // UEFA Europa League
+  253, // MLS
+];
+
 const getTodayMatches = async () => {
   try {
     if (!API_KEY) {
@@ -37,7 +48,13 @@ const getTodayMatches = async () => {
         date: today
       }
     });
-    return response.data.response || [];
+    
+    const allMatches = response.data.response || [];
+    
+    // Filter to only include matches from our elite target leagues
+    const targetMatches = allMatches.filter(match => TARGET_LEAGUES.includes(match.league.id));
+    
+    return targetMatches;
   } catch (error) {
     console.error('Error fetching matches:', error.response?.data || error.message);
     return [];
@@ -66,7 +83,33 @@ const getMatchOutcomes = async (matchIds) => {
   }
 };
 
+const getTeamStandings = async (leagueId, season, teamId) => {
+  try {
+    const response = await axios.get(`${BASE_URL}/standings`, {
+      headers: getHeaders(),
+      params: { league: leagueId, season: season, team: teamId }
+    });
+    return response.data.response[0]?.league?.standings[0]?.find(s => s.team.id === teamId) || null;
+  } catch (error) {
+    return null;
+  }
+};
+
+const getH2H = async (h2hString) => {
+  try {
+    const response = await axios.get(`${BASE_URL}/fixtures/headtohead`, {
+      headers: getHeaders(),
+      params: { h2h: h2hString, last: 5 }
+    });
+    return response.data.response || [];
+  } catch (error) {
+    return null;
+  }
+};
+
 module.exports = {
   getTodayMatches,
-  getMatchOutcomes
+  getMatchOutcomes,
+  getTeamStandings,
+  getH2H
 };
