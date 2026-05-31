@@ -10,7 +10,7 @@ const pool = new Pool({
 (async () => {
   try {
     const res = await pool.query('SELECT * FROM daily_predictions');
-    console.log("Total predictions found:", res.rowCount);
+    console.log("Predictions:", JSON.stringify(res.rows, null, 2));
     
     const hist = await pool.query('SELECT * FROM performance_history');
     console.log("History rows:", hist.rowCount);

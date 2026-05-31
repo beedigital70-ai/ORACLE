@@ -38,17 +38,17 @@ const analyzeMatch = async (matchData, historicalPerformance) => {
     You must evaluate all available markets from this strict checklist:
     ${MASTER_MARKET_LIST.join(', ')}
     
-    Your task is to isolate EXACTLY ONE market line for this match that has a calculated probability threshold >= 85%.
+    Your task is to isolate EXACTLY ONE market line for this match that you consider the safest, highest-probability pick.
     You have been provided with live statistical context (League Standings, Recent Form, Head-to-Head History).
-    You must strictly justify your 85%+ probability pick using the provided live statistical context.
-    If none of the markets meet this extreme 85% threshold based on the data, you MUST return a JSON object with market_line as null.
+    You must strictly justify your pick using the provided live statistical context.
+    You must always output a prediction. Do not return null unless the match data is completely corrupted.
     
     Respond STRICTLY in JSON format with no markdown block formatting, following this exact schema:
     {
-      "market_line": "Name of the market from the list + specific pick (e.g. 'Total Goals (Over/Under) - Over 1.5'), or null",
+      "market_line": "Name of the market from the list + specific pick (e.g. 'Total Goals (Over/Under) - Over 1.5')",
       "confidence_rating": 88.5,
       "odds": 1.85,
-      "data_justification": "Detailed statistical reason for why this hits the 85% threshold."
+      "data_justification": "Detailed statistical reason based on the provided live data for why this is the safest pick."
     }
   `;
 
