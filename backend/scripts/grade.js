@@ -14,9 +14,8 @@ const delay = ms => new Promise(res => setTimeout(res, ms));
     const pendingPicks = pendingRes.rows;
 
     if (pendingPicks.length === 0) {
-      console.log('No pending predictions to grade.');
-      process.exit(0);
-    }
+      console.log('No pending predictions to grade. Checking for pending slips...');
+    } else {
 
     console.log(`Found ${pendingPicks.length} pending predictions.`);
     
@@ -60,6 +59,7 @@ const delay = ms => new Promise(res => setTimeout(res, ms));
         console.error(`Failed to grade match ${pick.match_id}:`, err.message);
       }
     }
+    }
 
     // Grade Accumulators (daily_slips)
     console.log('Evaluating Daily Slips...');
@@ -67,7 +67,7 @@ const delay = ms => new Promise(res => setTimeout(res, ms));
     
     for (const slip of pendingSlipsRes.rows) {
       const pickIds = typeof slip.picks_included === 'string' ? JSON.parse(slip.picks_included) : slip.picks_included;
-      const picksRes = await pool.query("SELECT status FROM daily_predictions WHERE match_id = ANY($1::text[])", [pickIds]);
+      const picksRes = await pool.query("SELECT status FROM daily_predictions WHERE id = ANY($1::int[])", [pickIds]);
       const statuses = picksRes.rows.map(r => r.status);
       
       if (statuses.includes('Lost')) {
