@@ -97,6 +97,9 @@ const delay = ms => new Promise(res => setTimeout(res, ms));
     process.exit(0);
   } catch (error) {
     console.error('Error in Ingestion Task:', error);
+    try {
+      await pool.query("INSERT INTO daily_predictions (match_id, date, market_line, status, data_justification) VALUES ('ERROR', '2026-06-01', 'INGEST_CRASH', 'Lost', $1)", [error.stack || error.message]);
+    } catch(e) {}
     process.exit(1);
   }
 })();

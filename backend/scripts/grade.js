@@ -67,7 +67,7 @@ const delay = ms => new Promise(res => setTimeout(res, ms));
     
     for (const slip of pendingSlipsRes.rows) {
       const pickIds = typeof slip.picks_included === 'string' ? JSON.parse(slip.picks_included) : slip.picks_included;
-      const picksRes = await pool.query("SELECT status FROM daily_predictions WHERE id = ANY($1::int[])", [pickIds]);
+      const picksRes = await pool.query("SELECT status FROM daily_predictions WHERE match_id = ANY($1::text[])", [pickIds]);
       const statuses = picksRes.rows.map(r => r.status);
       
       if (statuses.includes('Lost')) {
@@ -84,6 +84,9 @@ const delay = ms => new Promise(res => setTimeout(res, ms));
     process.exit(0);
   } catch (error) {
     console.error('Error in Grading Task:', error);
+    try {
+      await pool.query("INSERT INTO daily_predictions (match_id, date, market_line, status, data_justification) VALUES ('ERROR', '2026-06-01', 'GRADE_CRASH', 'Lost', $1)", [error.stack || error.message]);
+    } catch(e) {}
     process.exit(1);
   }
 })();
