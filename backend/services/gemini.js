@@ -56,19 +56,15 @@ const analyzeMatch = async (matchData, historicalPerformance) => {
   try {
     const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
-        contents: prompt
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json"
+        }
     });
     
     const text = response.text;
-    
-    // Clean up potential markdown formatting from JSON
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      const parsed = JSON.parse(jsonMatch[0]);
-      if (!parsed.market_line) return null;
-      return parsed;
-    }
-    return null;
+    const parsed = JSON.parse(text);
+    return parsed;
   } catch (err) {
     console.error('Gemini API Error:', err);
     return null;
@@ -93,16 +89,16 @@ const gradeMatch = async (marketLine, matchOutcome) => {
   try {
     const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
-        contents: prompt
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json"
+        }
     });
     
     const text = response.text;
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      const parsed = JSON.parse(jsonMatch[0]);
-      if (['Won', 'Lost', 'Refunded'].includes(parsed.result)) {
-        return parsed.result;
-      }
+    const parsed = JSON.parse(text);
+    if (['Won', 'Lost', 'Refunded'].includes(parsed.result)) {
+      return parsed.result;
     }
     return 'Pending';
   } catch (err) {
