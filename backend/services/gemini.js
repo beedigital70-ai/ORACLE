@@ -42,7 +42,7 @@ const analyzeMatch = async (matchData, historicalPerformance) => {
     You have been provided with live statistical context (League Standings, Recent Form, Head-to-Head History).
     If the data is present, strictly justify your pick using it. 
     However, if the data says "N/A" or is empty (which happens frequently for Cup matches or teams from different divisions), DO NOT complain, mention, or apologize for the missing data in your justification. Simply adapt and use your internal knowledge base of the teams to make the best possible pick.
-    You must always output a prediction. Do not return null unless the match data is completely corrupted.
+    CRITICAL: You MUST ALWAYS output a prediction. Do not return null. If the match is highly unpredictable or evenly matched, you must choose a highly conservative, extremely safe market (e.g., 'Total Goals (Over/Under) - Over 0.5', or 'Total Goals (Over/Under) - Under 5.5') to absolutely guarantee an 85%+ hit rate. You are NOT ALLOWED to skip this match.
     
     Respond STRICTLY in JSON format with no markdown block formatting, following this exact schema:
     {

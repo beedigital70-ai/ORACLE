@@ -33,14 +33,27 @@ const TARGET_LEAGUES = [
   2, // UEFA Champions League
   3, // UEFA Europa League
   
-  // Summer / Active Leagues
+  // Summer / Active Leagues (Expanded for Daily Volume)
   253, // MLS (USA)
+  255, // USL Championship (USA)
   71,  // Serie A (Brazil)
+  72,  // Serie B (Brazil)
+  75,  // Serie C (Brazil)
+  76,  // Serie D (Brazil)
   128, // Liga Profesional (Argentina)
+  129, // Primera Nacional (Argentina)
   98,  // J1 League (Japan)
+  99,  // J2 League (Japan)
+  100, // J3 League (Japan)
   69,  // Eliteserien (Norway)
+  70,  // OBOS-ligaen (Norway)
   113, // Allsvenskan (Sweden)
+  114, // Superettan (Sweden)
+  244, // Veikkausliiga (Finland)
   292, // K League 1 (South Korea)
+  293, // K League 2 (South Korea)
+  357, // Premier Division (Ireland)
+  345, // Urvalsdeild (Iceland)
   
   // International Tournaments
   4,   // Euro Championship
