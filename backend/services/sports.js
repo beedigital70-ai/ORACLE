@@ -78,22 +78,29 @@ const getTodayMatches = async () => {
 
 const getMatchOutcomes = async (matchIds) => {
   try {
-    if (!API_KEY) return [];
+    if (!API_KEY || !matchIds || matchIds.length === 0) return [];
     
-    // Fetch today's fixtures and their statuses to find outcomes
-    const today = new Date().toISOString().split('T')[0];
-    const response = await axios.get(`${BASE_URL}/fixtures`, {
-      headers: getHeaders(),
-      params: {
-        date: today
+    let outcomes = [];
+    for (const matchId of matchIds) {
+      // API-Sports free tier blocks 'ids' parameter, must query individually
+      try {
+        const response = await axios.get(`${BASE_URL}/fixtures`, {
+          headers: getHeaders(),
+          params: { id: matchId }
+        });
+        if (response.data.response && response.data.response.length > 0) {
+          outcomes.push(response.data.response[0]);
+        }
+      } catch (err) {
+        console.error(`Error fetching match ${matchId}:`, err.message);
       }
-    });
+      // 1.5 second delay to avoid hitting the 10 req/min rate limit too hard
+      await new Promise(res => setTimeout(res, 1500));
+    }
     
-    const matches = response.data.response || [];
-    // Filter matches that are in our requested matchIds list and have finished
-    return matches.filter(m => matchIds.includes(m.fixture.id.toString()));
+    return outcomes;
   } catch (error) {
-    console.error('Error fetching match outcomes:', error.response?.data || error.message);
+    console.error('Error fetching match outcomes:', error.message);
     return [];
   }
 };

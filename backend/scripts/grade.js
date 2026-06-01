@@ -3,94 +3,75 @@ dotenv.config({ path: __dirname + '/../.env' });
 
 const pool = require('../db/database');
 const { getMatchOutcomes } = require('../services/sports');
+const { gradeMatch } = require('../services/gemini');
 
 const delay = ms => new Promise(res => setTimeout(res, ms));
 
 (async () => {
-  console.log('Running Grading Task: Grading outcomes...');
+  console.log('Running Grading Task: Checking pending predictions...');
   try {
-    const today = new Date().toISOString().split('T')[0];
-    
-    const pendingResult = await pool.query("SELECT * FROM daily_predictions WHERE status = 'Pending' AND date = $1", [today]);
-    const pendingPicks = pendingResult.rows;
-    
+    const pendingRes = await pool.query("SELECT * FROM daily_predictions WHERE status = 'Pending'");
+    const pendingPicks = pendingRes.rows;
+
     if (pendingPicks.length === 0) {
-      console.log('No pending picks to grade today.');
+      console.log('No pending predictions to grade.');
       process.exit(0);
     }
 
+    console.log(`Found ${pendingPicks.length} pending predictions.`);
+    
+    // Group pending picks by date to query API-Sports efficiently
     const matchIds = pendingPicks.map(p => p.match_id);
+    console.log('Querying match IDs:', matchIds);
     const outcomes = await getMatchOutcomes(matchIds);
-
-    let winsToday = 0;
-    let lossesToday = 0;
-
+    console.log('Outcomes fetched:', outcomes.length);
+    
     for (const pick of pendingPicks) {
-      const outcome = outcomes.find(o => o.fixture.id.toString() === pick.match_id.toString());
-      if (outcome && outcome.fixture.status.short === 'FT') {
-        const { GoogleGenAI } = require('@google/genai');
-        const ai = process.env.GEMINI_API_KEY ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY }) : null;
-        
-        let status = 'Pending';
-        if (ai) {
-           const gradePrompt = `
-              Did the following prediction WIN or LOSE based on the match outcome?
-              Prediction Market Line: ${pick.market_line}
-              Match Data & Final Score: ${JSON.stringify(outcome)}
-              Respond with EXACTLY ONE WORD: either "Won" or "Lost"
-            `;
-           try {
-              const response = await ai.models.generateContent({
-                model: 'gemini-2.5-flash',
-                contents: gradePrompt
-              });
-              const text = response.text.trim();
-              if (text.includes('Won')) status = 'Won';
-              else if (text.includes('Lost')) status = 'Lost';
-           } catch(e) {
-              console.error("Grading AI Error", e);
-           }
-           await delay(4500); // Rate limit
-        }
+      const outcome = outcomes.find(o => o.fixture.id.toString() === pick.match_id);
+      
+      if (!outcome) {
+        console.log(`Outcome not yet available for match ${pick.match_id}. Still pending.`);
+        continue;
+      }
+      
+      const isFinished = ["FT", "AET", "PEN", "ABD", "AWD", "WO"].includes(outcome.fixture.status.short);
+      if (!isFinished) {
+        console.log(`Match ${pick.match_id} is not finished yet (${outcome.fixture.status.short}). Still pending.`);
+        continue;
+      }
 
-        if (status !== 'Pending') {
-          await pool.query("UPDATE daily_predictions SET status = $1 WHERE id = $2", [status, pick.id]);
-          if (status === 'Won') winsToday++;
-          if (status === 'Lost') lossesToday++;
+      console.log(`Grading match ${pick.match_id} - ${pick.market_line}...`);
+      await delay(4500); // Rate Limit for Gemini
+      const result = await gradeMatch(pick.market_line, outcome);
+      
+      if (result !== 'Pending') {
+        console.log(`Result for ${pick.id}: ${result}`);
+        await pool.query("UPDATE daily_predictions SET status = $1 WHERE id = $2", [result, pick.id]);
+        
+        // Update history stats
+        const date = pick.date;
+        if (result === 'Won') {
+           await pool.query("UPDATE performance_history SET total_picks_won = total_picks_won + 1 WHERE date = $1", [date]);
         }
       }
     }
 
-    const profitLossUnits = winsToday - lossesToday;
-    await pool.query(`
-      UPDATE performance_history 
-      SET wins = wins + $1, losses = losses + $2, profit_loss_units = profit_loss_units + $3 
-      WHERE date = $4
-    `, [winsToday, lossesToday, profitLossUnits, today]);
+    // Grade Accumulators (daily_slips)
+    console.log('Evaluating Daily Slips...');
+    const pendingSlipsRes = await pool.query("SELECT * FROM daily_slips WHERE status = 'Pending'");
     
-    // Evaluate Slips
-    const slipsResult = await pool.query("SELECT * FROM daily_slips WHERE status = 'Pending' AND date = $1", [today]);
-    for (const slip of slipsResult.rows) {
-      const pickIds = JSON.parse(slip.picks_included);
+    for (const slip of pendingSlipsRes.rows) {
+      const pickIds = typeof slip.picks_included === 'string' ? JSON.parse(slip.picks_included) : slip.picks_included;
+      const picksRes = await pool.query("SELECT status FROM daily_predictions WHERE id = ANY($1::int[])", [pickIds]);
+      const statuses = picksRes.rows.map(r => r.status);
       
-      const pickPlaceholders = pickIds.map((_, i) => `$${i + 1}`).join(',');
-      const picksRes = await pool.query(`SELECT status FROM daily_predictions WHERE id IN (${pickPlaceholders})`, pickIds);
-      const picks = picksRes.rows;
-      
-      let slipStatus = 'Pending';
-      const hasLost = picks.some(p => p.status === 'Lost');
-      const allWon = picks.every(p => p.status === 'Won');
-      const hasPending = picks.some(p => p.status === 'Pending');
-
-      if (hasLost) {
-        slipStatus = 'Lost';
-      } else if (allWon && !hasPending && picks.length === pickIds.length) {
-        slipStatus = 'Won';
-      }
-
-      if (slipStatus !== 'Pending') {
-        await pool.query("UPDATE daily_slips SET status = $1 WHERE id = $2", [slipStatus, slip.id]);
-        console.log(`Slip ${slip.id} marked as ${slipStatus}`);
+      if (statuses.includes('Lost')) {
+        await pool.query("UPDATE daily_slips SET status = 'Lost' WHERE id = $1", [slip.id]);
+        console.log(`Slip ${slip.id} (${slip.slip_type}) updated to Lost.`);
+      } else if (!statuses.includes('Pending') && statuses.length === pickIds.length) {
+        // All picks exist and none are Pending/Lost -> Won
+        await pool.query("UPDATE daily_slips SET status = 'Won' WHERE id = $1", [slip.id]);
+        console.log(`Slip ${slip.id} (${slip.slip_type}) updated to Won!`);
       }
     }
 

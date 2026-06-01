@@ -75,6 +75,43 @@ const analyzeMatch = async (matchData, historicalPerformance) => {
   }
 };
 
+const gradeMatch = async (marketLine, matchOutcome) => {
+  if (!ai) return 'Pending';
+  
+  const prompt = `
+    You are an expert sports betting grading algorithm.
+    A prediction was made for a match: "${marketLine}"
+    The final match outcome and statistics are: ${JSON.stringify(matchOutcome)}
+    
+    Based on the actual match outcome, did this specific prediction win or lose?
+    Respond STRICTLY with a JSON object in this exact format:
+    { "result": "Won" } OR { "result": "Lost" }
+    
+    If the match was postponed or cancelled, return "Refunded".
+  `;
+  
+  try {
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt
+    });
+    
+    const text = response.text;
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      if (['Won', 'Lost', 'Refunded'].includes(parsed.result)) {
+        return parsed.result;
+      }
+    }
+    return 'Pending';
+  } catch (err) {
+    console.error('Gemini Grading Error:', err);
+    return 'Pending';
+  }
+};
+
 module.exports = {
-  analyzeMatch
+  analyzeMatch,
+  gradeMatch
 };

@@ -22,6 +22,13 @@ jobs:
       - name: Install Dependencies
         run: cd backend && npm install
 
+      - name: Run AI Grading Script
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          SPORTS_API_KEY: ${{ secrets.SPORTS_API_KEY }}
+        run: cd backend && node scripts/grade.js
+
       - name: Run AI Ingestion Script
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
