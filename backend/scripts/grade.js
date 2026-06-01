@@ -42,17 +42,22 @@ const delay = ms => new Promise(res => setTimeout(res, ms));
 
       console.log(`Grading match ${pick.match_id} - ${pick.market_line}...`);
       await delay(4500); // Rate Limit for Gemini
-      const result = await gradeMatch(pick.market_line, outcome);
-      
-      if (result !== 'Pending') {
-        console.log(`Result for ${pick.id}: ${result}`);
-        await pool.query("UPDATE daily_predictions SET status = $1 WHERE id = $2", [result, pick.id]);
-        
-        // Update history stats
-        const date = pick.date;
-        if (result === 'Won') {
-           await pool.query("UPDATE performance_history SET total_picks_won = total_picks_won + 1 WHERE date = $1", [date]);
+      try {
+        const result = await gradeMatch(pick.market_line, outcome);
+        if (result !== 'Pending') {
+          console.log(`Result for ${pick.id}: ${result}`);
+          await pool.query("UPDATE daily_predictions SET status = $1 WHERE id = $2", [result, pick.id]);
+          
+          // Update history stats
+          const date = pick.date;
+          if (result === 'Won') {
+             await pool.query("UPDATE performance_history SET wins = wins + 1 WHERE date = $1", [date]);
+          } else if (result === 'Lost') {
+             await pool.query("UPDATE performance_history SET losses = losses + 1 WHERE date = $1", [date]);
+          }
         }
+      } catch (err) {
+        console.error(`Failed to grade match ${pick.match_id}:`, err.message);
       }
     }
 
